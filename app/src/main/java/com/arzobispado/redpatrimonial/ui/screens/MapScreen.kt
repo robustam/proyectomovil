@@ -158,7 +158,13 @@ fun MapScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(listaNodos) { nodo ->
-                    ItemNodoPatrimonial(nodo = nodo, isGuest = isGuest)
+                    ItemNodoPatrimonial(
+                        nodo = nodo,
+                        isGuest = isGuest,
+                        onClick = {
+                            navController.navigate(AppScreens.Detail.createRoute(nodo.id))
+                        }
+                    )
                 }
             }
         }
@@ -166,8 +172,13 @@ fun MapScreen(
 }
 
 @Composable
-fun ItemNodoPatrimonial(nodo: NodoPatrimonial, isGuest: Boolean) {
+fun ItemNodoPatrimonial(
+    nodo: NodoPatrimonial,
+    isGuest: Boolean,
+    onClick: () -> Unit
+) {
     Card(
+        onClick = onClick,
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),

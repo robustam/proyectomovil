@@ -8,10 +8,9 @@ sealed class AppScreens (val route: String){
     object Register: AppScreens("register_screens")
     object Map: AppScreens("map_screens")
     // Pantalla de Ficha Patrimonial (recibe dinámicamente el ID del templo)
-    object Detail : AppScreens("detail_screen/{nodoId}"){
-        fun createRoutes(nodoId: Int): String = "detail_screen/$nodoId"
-    }
-    //identificadores de eventos ,plantificador de salidas escolares
+    object Detail : AppScreens("detail_screen/{nodoId}") {
+        fun createRoute(nodoId: Int): String = "detail_screen/$nodoId"
+    }    //identificadores de eventos ,plantificador de salidas escolares
     // y de avisos comunitarios
     object EventList: AppScreens("event_list_screen")
     object RoutePlanner: AppScreens("route_planner_screen")
