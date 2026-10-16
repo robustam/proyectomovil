@@ -6,10 +6,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.arzobispado.redpatrimonial.ui.screens.CommunityAlertsScreen
 import com.arzobispado.redpatrimonial.ui.screens.DetailScreen
+import com.arzobispado.redpatrimonial.ui.screens.EventListScreen
 import com.arzobispado.redpatrimonial.ui.screens.LoginScreen
 import com.arzobispado.redpatrimonial.ui.screens.MapScreen
 import com.arzobispado.redpatrimonial.ui.screens.RegisterScreen
+import com.arzobispado.redpatrimonial.ui.screens.RoutePlannerScreen
 
 // Función Composable que administra los cambios de pantalla
 @Composable
@@ -43,8 +46,14 @@ fun AppNavigation() {
         }
 
         // Rutas adicionales para futuras vistas
-        composable(route = AppScreens.EventList.route) { }
-        composable(route = AppScreens.RoutePlanner.route) { }
-        composable(route = AppScreens.CommunityAlerts.route) { }
+        composable(route = AppScreens.EventList.route) {
+            EventListScreen(navController= navController)
+        }
+        composable(route = AppScreens.RoutePlanner.route) {
+            RoutePlannerScreen(navController = navController )
+        }
+        composable(route = AppScreens.CommunityAlerts.route) {
+            CommunityAlertsScreen(navController = navController)
+        }
     }
 }
