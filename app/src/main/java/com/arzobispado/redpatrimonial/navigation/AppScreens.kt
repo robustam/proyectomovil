@@ -1,18 +1,47 @@
 package com.arzobispado.redpatrimonial.navigation
 
-// 'sealed class' (clase sellada) asegura que solo las rutas aquí definidas
-// existan en la navegación, evitando errores por escribir mal un texto.
-sealed class AppScreens (val route: String){
-    //identificadores de cada una de las pantallas
-    object Login: AppScreens("login_screens")
-    object Register: AppScreens("register_screens")
-    object Map: AppScreens("map_screens")
-    // Pantalla de Ficha Patrimonial (recibe dinámicamente el ID del templo)
-    object Detail : AppScreens("detail_screen/{nodoId}") {
-        fun createRoute(nodoId: Int): String = "detail_screen/$nodoId"
-    }    //identificadores de eventos ,plantificador de salidas escolares
-    // y de avisos comunitarios
-    object EventList: AppScreens("event_list_screen")
-    object RoutePlanner: AppScreens("route_planner_screen")
-    object CommunityAlerts : AppScreens("community_alerts_screen")
+/**
+ * Todas las rutas de navegación de la app.
+ * La 'sealed class' asegura que solo existan las rutas definidas aquí.
+ */
+sealed class AppScreens(val route: String) {
+    // ---- Acceso ----
+    object Login : AppScreens("login")
+    object Register : AppScreens("registro")
+    object RecuperarClave : AppScreens("recuperar_clave")
+
+    // ---- Turista / común ----
+    object Map : AppScreens("inicio")
+    object Explorar : AppScreens("explorar")
+    object Detail : AppScreens("detalle/{nodoId}") {
+        fun createRoute(nodoId: Long) = "detalle/$nodoId"
+    }
+    object EventList : AppScreens("eventos")
+    object Ticket : AppScreens("ticket")
+    object RoutePlanner : AppScreens("rutas")
+    object RutaDetalle : AppScreens("ruta/{rutaId}") {
+        fun createRoute(rutaId: Long) = "ruta/$rutaId"
+    }
+    object CrearRuta : AppScreens("crear_ruta")
+    object CommunityAlerts : AppScreens("avisos")
+    object Perfil : AppScreens("perfil")
+
+    // ---- Profesor / colegio ----
+    object Salidas : AppScreens("salidas")
+    object NuevaSalida : AppScreens("nueva_salida")
+
+    // ---- Guía voluntario ----
+    object PanelGuia : AppScreens("panel_guia")
+    object Disponibilidad : AppScreens("disponibilidad")
+
+    // ---- Encargado de templo ----
+    object PanelEncargado : AppScreens("panel_encargado")
+    object HorarioExcepcional : AppScreens("horario_excepcional")
+    object PublicarEvento : AppScreens("publicar_evento")
+    object PublicarAviso : AppScreens("publicar_aviso")
+    object Solicitudes : AppScreens("solicitudes")
+    object EditarFicha : AppScreens("editar_ficha")
+
+    // ---- Administrador ----
+    object PanelAdmin : AppScreens("panel_admin")
 }

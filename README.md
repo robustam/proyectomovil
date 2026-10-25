@@ -1,200 +1,61 @@
-# Red Patrimonial App — Arzobispado de Santiago
+# Red Patrimonial · App móvil (Kotlin + Jetpack Compose)
 
-Aplicación móvil Android (MVP) que muestra una red de puntos de interés patrimonial (iglesias, parroquias y monumentos) del Arzobispado de Santiago. Permite iniciar sesión, registrarse o explorar como invitado, ver un listado de templos y revisar la ficha de detalle de cada uno.
+App Android del MVP para la Red Patrimonial del Arzobispado de Santiago (DSY1105).
 
-Desarrollada con **Kotlin** y **Jetpack Compose (Material 3)**.
+## Cómo ejecutarla
+1. Enciende los 5 microservicios de `RedPatrimonialBackend` (ver su README).
+2. Abre esta carpeta en Android Studio y ejecuta la app en un **emulador**. La app se conecta a `10.0.2.2`, que en el emulador apunta al `localhost` del computador.
+3. **En un celular físico:** cambia `HOST` en `data/remote/ApiConfig.kt` por la IP del computador (por ejemplo `192.168.1.15`) y conecta ambos a la misma red Wi-Fi.
 
----
+> Si el backend no está encendido, la app **igual funciona**: usa los mismos datos de prueba en memoria y muestra el aviso "Sin conexión al servidor". Sirve para la presentación, pero lo ideal es mostrarla conectada.
 
-## 📱 Pantallas incluidas
+Cuentas de prueba (clave `demo123`): `turista@demo.cl`, `profesor@demo.cl`, `guia@demo.cl`, `encargado@demo.cl`, `admin@demo.cl`. También puedes entrar como invitado.
 
-| Pantalla | Archivo | Qué muestra |
-|---|---|---|
-| Inicio de sesión | `LoginScreen.kt` | Formulario de correo y contraseña, botón **Iniciar Sesión**, botón **Explorar como Invitado** y enlace a registro. |
-| Registro | `RegisterScreen.kt` | Formulario de nombre, correo, contraseña y confirmación. |
-| Listado / Mapa | `MapScreen.kt` | Buscador y tarjetas de 4 puntos patrimoniales (Catedral Metropolitana, Iglesia San Francisco, Parroquia San Saturnino, Basílica del Salvador) con su categoría y estado. |
-| Detalle patrimonial | `DetailScreen.kt` | Ficha del templo: categoría, dirección, horarios, reseña histórica, botón de favorito y **Solicitar Pase de Visita**. |
-
-### Flujo de navegación
-
+## Arquitectura (MVVM + Navigation)
 ```
-Login ──► Registro ──► Listado (Mapa) ──► Detalle
-  │                        ▲
-  └── Explorar como Invitado ┘
+data/
+  model/        Modelos (los mismos campos que el JSON del backend)
+  remote/       Retrofit: ApiConfig, interfaces de los 5 microservicios
+  repository/   Repositorios: llaman a la API y, si no hay servidor, usan datos de prueba
+  mock/         Datos de prueba sintéticos
+viewmodel/      AuthVM, NodoVM, EventoVM, RutaVM, SalidaVM, GuiaVM, AvisoVM (StateFlow)
+navigation/     AppScreens (rutas) y AppNavigation (barra inferior según el rol)
+ui/screens/     22 pantallas en Compose
+ui/components/  Componentes reutilizables, mapa esquemático y QR simulado
+util/           Formatos de fecha y cálculo de rutas
 ```
+Flujo: **Pantalla → ViewModel → Repositorio → Retrofit → Microservicio**. Las pantallas no tienen datos escritos a mano: todo viene del ViewModel.
 
-> **Nota:** el inicio de sesión y el registro son **simulados** (todavía no hay backend). Se puede escribir cualquier dato, o dejar los campos vacíos, y al presionar el botón la app avanza al listado.
-
----
-
-## 🧰 Requisitos
-
-| Herramienta | Versión usada en el proyecto |
+## Navegación según el rol
+| Rol | Barra inferior |
 |---|---|
-| Android Studio | Versión reciente (compatible con AGP 9.4) |
-| Android Gradle Plugin (AGP) | 9.4.1 |
-| Gradle (wrapper) | 9.6.0 (se descarga solo) |
-| Kotlin | 2.2.10 |
-| JDK | 25 (Android Studio lo gestiona automáticamente) |
-| `compileSdk` / `targetSdk` | 37 |
-| `minSdk` | 26 (**Android 8.0** o superior) |
+| Invitado / Turista | Mapa · Buscar · Rutas · Avisos · Perfil |
+| Profesor | Mapa · Salidas · Rutas · Avisos · Perfil |
+| Guía | Mi panel · Mapa · Avisos · Perfil |
+| Encargado de templo | Mi templo · Mapa · Avisos · Perfil |
+| Administrador | Panel · Mapa · Avisos · Perfil |
 
-Se necesita **conexión a internet** la primera vez, para que Gradle descargue las dependencias.
-
----
-
-## 🚀 Cómo visualizar el proyecto
-
-Hay tres formas. La más simple es la **Opción A (emulador)**.
-
-### Paso 0 — Abrir el proyecto en Android Studio
-
-1. Descomprime el archivo `proyectomovil.zip`.
-2. Abre **Android Studio** → **File → Open…**
-3. Selecciona la carpeta **`proyectomovil`** (la que contiene `settings.gradle.kts`) y presiona **OK**.
-4. Espera a que termine la **sincronización de Gradle** (barra de progreso abajo a la derecha). La primera vez puede tardar varios minutos.
-5. Si aparece un aviso de que falta el **SDK 37**, haz clic en el enlace del mensaje para instalarlo, o ve a **Tools → SDK Manager** y marca la plataforma correspondiente.
-
-> ⚠️ El archivo `local.properties` incluido apunta a la ruta del SDK de otro computador (`C:\Users\mlete\...`). Si Gradle reclama por el SDK, **borra `local.properties`** y vuelve a sincronizar: Android Studio lo regenera con tu propia ruta.
-
----
-
-### Opción A — Ejecutar en un emulador (recomendado)
-
-1. Abre **Tools → Device Manager**.
-2. Presiona **+ (Create Virtual Device)**.
-3. Elige un teléfono, por ejemplo **Pixel 8**, y presiona **Next**.
-4. Selecciona una imagen de sistema con **API 26 o superior** (idealmente la más reciente) y descárgala si es necesario.
-5. Presiona **Finish**.
-6. En la barra superior, verifica que la configuración de ejecución sea **`app`** y que esté seleccionado el emulador creado.
-7. Presiona el botón **▶ Run 'app'** (o `Shift + F10`).
-8. Se abrirá el emulador y aparecerá la pantalla de **Inicio de sesión**.
-
-### Opción B — Ejecutar en un teléfono Android físico
-
-1. En el teléfono: **Ajustes → Acerca del teléfono** y toca **7 veces** "Número de compilación" para activar las *Opciones de desarrollador*.
-2. Entra en **Ajustes → Sistema → Opciones de desarrollador** y activa **Depuración USB**.
-3. Conecta el teléfono al PC por cable USB y acepta el mensaje *"¿Permitir depuración USB?"*.
-4. En Android Studio, el teléfono aparecerá en la lista de dispositivos de la barra superior. Selecciónalo.
-5. Presiona **▶ Run 'app'**.
-
-> El teléfono debe tener **Android 8.0 o superior**.
-
-### Opción C — Vista previa sin ejecutar (Compose Preview)
-
-Cada pantalla tiene una función `@Preview`, así que se puede ver el diseño sin emulador:
-
-1. Abre cualquiera de estos archivos en `app/src/main/java/com/arzobispado/redpatrimonial/ui/screens/`:
-   - `LoginScreen.kt`
-   - `RegisterScreen.kt`
-   - `MapScreen.kt`
-   - `DetailScreen.kt`
-2. Arriba a la derecha del editor, cambia a la vista **Split** o **Design**.
-3. Si se pide, presiona **Build & Refresh**.
-4. Se mostrará la pantalla dibujada dentro de un teléfono de ejemplo.
-
-> La vista previa muestra el diseño, pero no permite navegar entre pantallas. Para probar el flujo completo usa la Opción A o B.
-
----
-
-## 🖥️ Alternativa por línea de comandos (opcional)
-
-Desde la carpeta `proyectomovil`:
-
-**Windows**
-```bat
-gradlew.bat assembleDebug
-```
-
-**macOS / Linux**
-```bash
-./gradlew assembleDebug
-```
-
-El APK queda en:
-
-```
-app/build/outputs/apk/debug/app-debug.apk
-```
-
-Para instalarlo en un emulador o teléfono conectado:
-
-```bash
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-O compilar e instalar en un solo paso:
-
-```bash
-./gradlew installDebug
-```
-
----
-
-## 🧭 Qué probar al ejecutar la app
-
-1. **Login** → presiona **Iniciar Sesión** (sin datos reales) y llegarás al listado.
-2. Vuelve atrás y prueba **Explorar como Invitado**: el listado muestra "Modo Invitado" y un botón **Ingresar** arriba a la derecha.
-3. En **Login**, toca **"¿No tienes cuenta? Regístrate aquí"** para ver el formulario de registro.
-4. En el **listado**, toca cualquier tarjeta para abrir su **ficha de detalle**.
-5. En el **detalle**, presiona el ❤️ o **Solicitar Pase de Visita**: aparece un aviso pidiendo iniciar sesión (función reservada a usuarios registrados).
-
----
-
-## 📂 Estructura del proyecto
-
-```
-proyectomovil/
-├── app/
-│   ├── build.gradle.kts                 # Configuración y dependencias del módulo
-│   └── src/main/
-│       ├── AndroidManifest.xml
-│       ├── java/com/arzobispado/redpatrimonial/
-│       │   ├── MainActivity.kt          # Punto de entrada; carga el tema y la navegación
-│       │   ├── data/model/
-│       │   │   └── NodoPatrimonial.kt   # Modelo de datos de cada punto patrimonial
-│       │   ├── navigation/
-│       │   │   ├── AppScreens.kt        # Rutas de navegación (sealed class)
-│       │   │   └── AppNavigation.kt     # NavHost con todas las pantallas
-│       │   └── ui/
-│       │       ├── screens/             # Login, Register, Map y Detail
-│       │       └── theme/               # Colores, tipografía y tema Material 3
-│       └── res/                         # Íconos, strings, temas
-├── gradle/libs.versions.toml            # Catálogo de versiones
-├── build.gradle.kts
-└── settings.gradle.kts
-```
-
----
-
-## 🛠️ Tecnologías
-
-- Kotlin
-- Jetpack Compose + Material 3
-- Navigation Compose (navegación entre pantallas)
-- Material Icons Extended
-- Lifecycle ViewModel Compose
-
----
-
-## 📌 Estado actual y próximos pasos
-
-- Los datos de los templos están **escritos directamente en el código** (no hay base de datos ni API todavía).
-- El login y el registro **no validan credenciales**.
-- El parámetro `isGuest` vale `true` por defecto, por lo que el listado y el detalle se muestran siempre en modo invitado.
-- La pantalla de detalle siempre muestra la Catedral Metropolitana, sin importar el templo seleccionado.
-- Rutas ya declaradas pero aún sin pantalla: **Eventos**, **Planificador de rutas** y **Avisos comunitarios**.
-- El nombre "Mapa" es provisional: aún no se integra un mapa real (por ejemplo, Google Maps).
-
----
-
-## 🧯 Problemas comunes
-
-| Problema | Solución |
+## Pantallas y casos de uso
+| Pantalla | Casos de uso |
 |---|---|
-| *"SDK location not found"* o error con la ruta del SDK | Borra `local.properties` y sincroniza de nuevo (**File → Sync Project with Gradle Files**). |
-| *"Failed to find target with hash string 'android-37'"* | Instala la plataforma SDK 37 desde **Tools → SDK Manager**. |
-| Error de versión de Java / JDK | Ve a **Settings → Build, Execution, Deployment → Build Tools → Gradle** y en *Gradle JDK* elige el JDK incluido en Android Studio, o uno recomendado por el IDE. |
-| *"This version of the Android Gradle plugin requires a newer Android Studio"* | Actualiza Android Studio a la versión más reciente (**Help → Check for Updates**). |
-| El emulador no inicia o va muy lento | Activa la virtualización (VT-x / AMD-V) en la BIOS y usa una imagen de sistema **x86_64**. |
-| La vista previa (Preview) no aparece | Presiona **Build & Refresh** o compila una vez con **Build → Make Project**. |
+| Login, Registro (con elección de perfil), Recuperar contraseña | Acceso |
+| Mapa (inicio) | CU01, CU04 |
+| Explorar (filtros por tipo, comuna y "abiertos ahora") | CU02 |
+| Ficha patrimonial (Historia / Horarios / Galería / Eventos) | CU03 |
+| Agenda cultural y Ticket QR | CU05 |
+| Rutas, Detalle de ruta, Crear ruta (con distancia y tiempo calculados) | CU06, CU09 |
+| Avisos en vivo (filtros y reportes) | CU14 |
+| Perfil (entradas QR, rutas, favoritos) | — |
+| Salidas pedagógicas y Nueva salida (asistente de 3 pasos) | CU07, CU08 |
+| Panel del guía y Disponibilidad | CU16, CU17, CU18 |
+| Mi templo: estado en tiempo real, horarios excepcionales, publicar evento, publicar aviso, solicitudes, editar ficha y galería | CU04, CU10–CU15 |
+| Panel de administración (indicadores y permisos por nodo) | CU20, CU21 |
+
+## Vistas previas (panel Split)
+Cada pantalla tiene al final una función `@Preview` que usa datos de prueba (`ui/preview/VistaPrevia.kt`).
+Abre cualquier archivo de `ui/screens`, elige **Split** y, si aparece el aviso, presiona **Build & Refresh**.
+
+## Pendiente para próximas unidades
+- **Room:** favoritos, rutas guardadas y una copia local de nodos y avisos. Hoy los favoritos solo duran la sesión.
+- **GPS:** reemplazar el mapa esquemático por un mapa real y activar la navegación paso a paso.
+- **Cámara:** subir fotos a la galería desde el teléfono, en lugar de usar URLs de prueba.

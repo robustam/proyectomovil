@@ -1,291 +1,185 @@
 package com.arzobispado.redpatrimonial.ui.screens
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Church
-import androidx.compose.material.icons.filled.Event
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavHostController
+import com.arzobispado.redpatrimonial.data.model.Evento
 import com.arzobispado.redpatrimonial.navigation.AppScreens
+import com.arzobispado.redpatrimonial.ui.components.*
+import com.arzobispado.redpatrimonial.util.Formatos
+import com.arzobispado.redpatrimonial.viewmodel.AuthViewModel
+import com.arzobispado.redpatrimonial.viewmodel.EventoViewModel
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.arzobispado.redpatrimonial.ui.preview.VistaPrevia
+import com.arzobispado.redpatrimonial.ui.preview.rememberViewModelsPrueba
+import com.arzobispado.redpatrimonial.data.model.Roles
 
-// Modelo de datos local para la agenda
-data class EventoPatrimonial(
-    val id: Int,
-    val titulo: String,
-    val templo: String,
-    val fecha: String,
-    val hora: String,
-    val tipo: String
-)
-
+/** CU05: oferta cultural y litúrgica con reserva de cupo y ticket QR. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EventListScreen(
-    navController: NavController,
-    isGuest: Boolean = true
-) {
-    var showGuestDialog by remember { mutableStateOf(false) }
+fun EventListScreen(navController: NavHostController, authVM: AuthViewModel, eventoVM: EventoViewModel) {
+    val eventos by eventoVM.eventos.collectAsState()
+    val usuario by authVM.usuario.collectAsState()
+    var diaFiltro by remember { mutableStateOf<String?>(null) }
+    var eventoReserva by remember { mutableStateOf<Evento?>(null) }
+    var mostrarInvitado by remember { mutableStateOf(false) }
 
-    val listaEventos = remember {
-        listOf(
-            EventoPatrimonial(
-                1,
-                "Misa Dominical Solemne",
-                "Catedral Metropolitana",
-                "Dom, 20 Oct",
-                "12:00 hrs",
-                "Misa"
-            ),
-            EventoPatrimonial(
-                2,
-                "Concierto de Órgano Barroco",
-                "Iglesia San Francisco",
-                "Jue, 24 Oct",
-                "19:00 hrs",
-                "Concierto"
-            ),
-            EventoPatrimonial(
-                3,
-                "Ruta Nocturna por los Templos",
-                "Barrio Yungay",
-                "Sáb, 26 Oct",
-                "20:30 hrs",
-                "Visita Guiada"
-            ),
-            EventoPatrimonial(
-                4,
-                "Exposición de Arte Sacro",
-                "Basílica del Salvador",
-                "Mar, 29 Oct",
-                "10:00 hrs",
-                "Exposición"
-            )
-        )
-    }
+    val dias = eventos.map { it.fechaInicio.take(10) }.distinct().sorted()
+    val visibles = eventos.filter { diaFiltro == null || it.fechaInicio.startsWith(diaFiltro!!) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Agenda Cultural y Litúrgica",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0F172A)
-                )
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF1F5F9))
+    Pantalla(
+        titulo = "Oferta cultural y litúrgica",
+        onVolver = { navController.popBackStack() },
+        viewModels = listOf(eventoVM)
+    ) {
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "Próximos Eventos Patrimoniales",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B),
-                modifier = Modifier.padding(16.dp)
-            )
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(listaEventos) { evento ->
-                    ItemEvento(
-                        evento = evento,
-                        onInscribirClick = {
-                            if (isGuest) {
-                                showGuestDialog = true
-                            } else {
-                                // Lógica de reserva para registrado
-                            }
-                        }
-                    )
-                }
+            item { FilterChip(selected = diaFiltro == null, onClick = { diaFiltro = null }, label = { Text("Todos") }) }
+            items(dias) { d ->
+                FilterChip(selected = diaFiltro == d, onClick = { diaFiltro = d }, label = { Text(Formatos.fechaCorta(d)) })
             }
         }
+        LazyColumn(
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(visibles, key = { it.idEvento }) { e ->
+                TarjetaEvento(
+                    evento = e,
+                    onTemplo = { navController.navigate(AppScreens.Detail.createRoute(e.idNodo)) },
+                    onReservar = { if (usuario == null) mostrarInvitado = true else eventoReserva = e }
+                )
+            }
+            if (visibles.isEmpty()) item { MensajeVacio("No hay eventos programados", Icons.Default.EventBusy) }
+        }
     }
 
-    if (showGuestDialog) {
-        AlertDialog(
-            onDismissRequest = { showGuestDialog = false },
-            title = { Text("Función para Usuarios Registrados") },
-            text = { Text("Debes iniciar sesión para reservar cupos o inscribirte en eventos patrimoniales.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showGuestDialog = false
-                        navController.navigate(AppScreens.Login.route)
+    eventoReserva?.let { e ->
+        DialogoReserva(
+            evento = e,
+            onConfirmar = { cantidad ->
+                usuario?.let { u ->
+                    eventoVM.inscribir(e, u, cantidad) {
+                        eventoReserva = null
+                        navController.navigate(AppScreens.Ticket.route)
                     }
-                ) {
-                    Text("Iniciar Sesión")
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showGuestDialog = false }) {
-                    Text("Cancelar")
-                }
-            }
+            onCerrar = { eventoReserva = null }
+        )
+    }
+    if (mostrarInvitado) {
+        DialogoInvitado(
+            "Debes iniciar sesión para reservar cupos o inscribirte en eventos patrimoniales.",
+            onIniciarSesion = { mostrarInvitado = false; navController.navigate(AppScreens.Login.route) },
+            onCerrar = { mostrarInvitado = false }
         )
     }
 }
 
 @Composable
-fun ItemEvento(
-    evento: EventoPatrimonial,
-    onInscribirClick: () -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
+private fun TarjetaEvento(evento: Evento, onTemplo: () -> Unit, onReservar: () -> Unit) {
+    val cancelado = evento.estado == "CANCELADO"
+    Tarjeta {
+        Row(verticalAlignment = Alignment.Top) {
+            // Fecha tipo calendario
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
-                    .size(50.dp)
-                    .background(Color(0xFFEFF6FF), shape = RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
+                    .background(Paleta.AzulMuySuave, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Event,
-                    contentDescription = null,
-                    tint = Color(0xFF2563EB)
-                )
+                Text(Formatos.fechaCorta(evento.fechaInicio).substringBefore(' ').uppercase(), fontSize = 11.sp, color = Paleta.Azul, fontWeight = FontWeight.Bold)
+                Text(evento.fechaInicio.substring(8, 10), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Paleta.Texto)
             }
-
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Surface(
-                    color = Color(0xFFDBEAFE),
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Text(
-                        text = evento.tipo,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E40AF),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Etiqueta(Formatos.categoriaEvento(evento.categoria))
+                    if (cancelado) Etiqueta("Cancelado", Paleta.RojoSuave, Paleta.RojoOscuro)
                 }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = evento.titulo,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
-                )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Church,
-                        contentDescription = null,
-                        tint = Color(0xFF64748B),
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = evento.templo,
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B)
-                    )
+                Spacer(Modifier.height(4.dp))
+                Text(evento.titulo, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Paleta.Texto)
+                TextButton(onClick = onTemplo, contentPadding = PaddingValues(0.dp)) {
+                    Icon(Icons.Default.Church, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text(evento.nombreNodo, fontSize = 12.sp)
                 }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = null,
-                            tint = Color(0xFF2563EB),
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = evento.fecha,
-                            fontSize = 11.sp,
-                            color = Color(0xFF334155),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Schedule,
-                            contentDescription = null,
-                            tint = Color(0xFF166534),
-                            modifier = Modifier.size(13.dp)
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = evento.hora,
-                            fontSize = 11.sp,
-                            color = Color(0xFF334155),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
+                FilaDato(Icons.Default.Schedule, "${Formatos.soloHora(evento.fechaInicio)} - ${Formatos.soloHora(evento.fechaFin)} hrs", tinte = Paleta.Verde)
+                if (evento.descripcion.isNotBlank()) Text(evento.descripcion, fontSize = 12.sp, color = Paleta.TextoSuave)
             }
-
-            Button(
-                onClick = onInscribirClick,
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
-            ) {
-                Text(text = "Inscribirme", fontSize = 11.sp)
+        }
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                when {
+                    !evento.requiereInscripcion -> "Entrada libre, sin reserva"
+                    evento.cupoMaximo > 0 -> "${evento.cuposDisponibles} de ${evento.cupoMaximo} cupos disponibles"
+                    else -> "Requiere inscripción"
+                },
+                fontSize = 12.sp, color = Paleta.TextoMedio, modifier = Modifier.weight(1f)
+            )
+            if (evento.requiereInscripcion && !cancelado) {
+                Button(
+                    onClick = onReservar,
+                    enabled = evento.cupoMaximo == 0 || evento.cuposDisponibles > 0,
+                    colors = ButtonDefaults.buttonColors(containerColor = Paleta.Azul),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Icon(Icons.Default.QrCode, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Reservar cupo", fontSize = 12.sp)
+                }
             }
         }
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun EventListScreenPreview() {
-    EventListScreen(navController = rememberNavController())
+private fun DialogoReserva(evento: Evento, onConfirmar: (Int) -> Unit, onCerrar: () -> Unit) {
+    var cantidad by remember { mutableIntStateOf(1) }
+    AlertDialog(
+        onDismissRequest = onCerrar,
+        title = { Text("Reservar cupo") },
+        text = {
+            Column {
+                Text(evento.titulo, fontWeight = FontWeight.Bold)
+                Text("${evento.nombreNodo} · ${Formatos.fechaHora(evento.fechaInicio)}", fontSize = 13.sp, color = Paleta.TextoSuave)
+                Spacer(Modifier.height(16.dp))
+                Text("¿Cuántas personas asistirán?")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { if (cantidad > 1) cantidad-- }) { Icon(Icons.Default.RemoveCircleOutline, contentDescription = "Menos") }
+                    Text("$cantidad", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = { if (cantidad < 10) cantidad++ }) { Icon(Icons.Default.AddCircleOutline, contentDescription = "Más") }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onConfirmar(cantidad) }) { Text("Confirmar reserva") } },
+        dismissButton = { TextButton(onClick = onCerrar) { Text("Cancelar") } }
+    )
+}
+
+
+// ---------- Vista previa para el panel Split de Android Studio (usa datos de prueba) ----------
+@Preview(name = "Agenda cultural", showBackground = true, showSystemUi = true)
+@Composable
+private fun EventListScreenPreview() {
+    val vm = rememberViewModelsPrueba(rol = Roles.TURISTA)
+    VistaPrevia { EventListScreen(rememberNavController(), vm.auth, vm.evento) }
 }

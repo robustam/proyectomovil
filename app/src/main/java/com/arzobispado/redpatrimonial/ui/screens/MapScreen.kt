@@ -1,282 +1,203 @@
 package com.arzobispado.redpatrimonial.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Login
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.arzobispado.redpatrimonial.data.model.NodoPatrimonial
+import androidx.navigation.NavHostController
+import com.arzobispado.redpatrimonial.data.model.CategoriasAviso
+import com.arzobispado.redpatrimonial.data.model.EstadosApertura
 import com.arzobispado.redpatrimonial.navigation.AppScreens
+import com.arzobispado.redpatrimonial.ui.components.*
+import com.arzobispado.redpatrimonial.util.Formatos
+import com.arzobispado.redpatrimonial.viewmodel.AuthViewModel
+import com.arzobispado.redpatrimonial.viewmodel.AvisoViewModel
+import com.arzobispado.redpatrimonial.viewmodel.EventoViewModel
+import com.arzobispado.redpatrimonial.viewmodel.NodoViewModel
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.arzobispado.redpatrimonial.ui.preview.VistaPrevia
+import com.arzobispado.redpatrimonial.ui.preview.rememberViewModelsPrueba
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** CU01 + CU04: mapa interactivo de la red con el estado de apertura en tiempo real. */
 @Composable
 fun MapScreen(
-    navController: NavController,
-    isGuest: Boolean = true
+    navController: NavHostController,
+    authVM: AuthViewModel,
+    nodoVM: NodoViewModel,
+    eventoVM: EventoViewModel,
+    avisoVM: AvisoViewModel
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    val usuario by authVM.usuario.collectAsState()
+    val nodos by nodoVM.nodos.collectAsState()
+    val avisos by avisoVM.avisos.collectAsState()
+    val eventos by eventoVM.eventos.collectAsState()
+    var seleccionadoId by rememberSaveable { mutableStateOf<Long?>(null) }
+    val seleccionado = nodos.firstOrNull { it.idNodo == seleccionadoId } ?: nodos.firstOrNull()
 
-    val listaNodos = remember {
-        listOf(
-            NodoPatrimonial(
-                id = 1,
-                nombre = "Catedral Metropolitana de Santiago",
-                direccion = "Plaza de Armas s/n",
-                categoria = "Religioso / Histórico",
-                estadoOperativo = "Abierto",
-                latitud = -33.4372,
-                longitud = -70.6506,
-                imagenUrl = ""
-            ),
-            NodoPatrimonial(
-                id = 2,
-                nombre = "Iglesia San Francisco",
-                direccion = "Av. Libertador Bernardo O'Higgins 834",
-                categoria = "Monumento Histórico",
-                estadoOperativo = "Abierto",
-                latitud = -33.4442,
-                longitud = -70.6458,
-                imagenUrl = ""
-            ),
-            NodoPatrimonial(
-                id = 3,
-                nombre = "Parroquia San Saturnino",
-                direccion = "Santo Domingo 2772, Barrio Yungay",
-                categoria = "Patrimonio Local",
-                estadoOperativo = "Restauración",
-                latitud = -33.4390,
-                longitud = -70.6720,
-                imagenUrl = ""
-            ),
-            NodoPatrimonial(
-                id = 4,
-                nombre = "Basílica del Salvador",
-                direccion = "Huérfanos 1701, Santiago Centro",
-                categoria = "Arquitectura Neogótica",
-                estadoOperativo = "Visita Guiada",
-                latitud = -33.4410,
-                longitud = -70.6620,
-                imagenUrl = ""
-            )
-        )
-    }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Red Patrimonial",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = if (isGuest) "Modo Invitado" else "Santiago, Chile",
-                            fontSize = 12.sp,
-                            color = Color(0xFF93C5FD)
-                        )
-                    }
-                },
-                actions = {
-                    if (isGuest) {
-                        TextButton(
-                            onClick = {
-                                navController.navigate(AppScreens.Login.route) {
-                                    popUpTo(AppScreens.Map.route) { inclusive = true }
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Login,
-                                contentDescription = "Iniciar Sesión",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Ingresar", color = Color.White, fontSize = 12.sp)
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0F172A)
-                )
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF1F5F9))
-        ) {
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Buscar iglesia, parroquia o monumento...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White,
-                    unfocusedContainerColor = Color.White
-                )
-            )
-
-            Text(
-                text = "Puntos de Interés Patrimonial",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(listaNodos) { nodo ->
-                    ItemNodoPatrimonial(
-                        nodo = nodo,
-                        isGuest = isGuest,
-                        onClick = {
-                            navController.navigate(AppScreens.Detail.createRoute(nodo.id))
-                        }
-                    )
+    Pantalla(
+        titulo = "Red Patrimonial",
+        subtitulo = usuario?.let { "Hola, ${it.nombreCompleto.substringBefore(' ')}" } ?: "Modo invitado",
+        viewModels = listOf(authVM, nodoVM, avisoVM),
+        acciones = {
+            IconButton(onClick = { nodoVM.cargar(); avisoVM.cargar(); eventoVM.cargar() }) {
+                Icon(Icons.Default.Refresh, contentDescription = "Actualizar", tint = Color.White)
+            }
+            if (usuario == null) {
+                TextButton(onClick = { navController.navigate(AppScreens.Login.route) }) {
+                    Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Ingresar", color = Color.White, fontSize = 12.sp)
                 }
             }
         }
-    }
-}
-
-@Composable
-fun ItemNodoPatrimonial(
-    nodo: NodoPatrimonial,
-    isGuest: Boolean,
-    onClick: () -> Unit
-) {
-    Card(
-        onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
-        modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        LazyColumn(
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(Color(0xFFEFF6FF), shape = RoundedCornerShape(12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AccountBalance,
-                    contentDescription = null,
-                    tint = Color(0xFF2563EB)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = nodo.nombre,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
-                )
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = Color(0xFF64748B),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = nodo.direccion,
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Buscador (lleva a la pantalla de búsqueda con filtros)
+            item {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { navController.navigate(AppScreens.Explorar.route) }
                 ) {
-                    Surface(
-                        color = Color(0xFFDBEAFE),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = nodo.categoria,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1E40AF),
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-
-                    Surface(
-                        color = if (nodo.estadoOperativo == "Abierto") Color(0xFFDCFCE7) else Color(0xFFFEF3C7),
-                        shape = RoundedCornerShape(6.dp)
-                    ) {
-                        Text(
-                            text = nodo.estadoOperativo,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (nodo.estadoOperativo == "Abierto") Color(0xFF166534) else Color(0xFF92400E),
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                    Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = Paleta.TextoSuave)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Buscar templo, museo o comuna…", color = Paleta.TextoSuave)
                     }
                 }
             }
 
-            if (!isGuest) {
-                IconButton(onClick = { /* Acción para usuarios autenticados */ }) {
-                    Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = "Guardar Favorito",
-                        tint = Color(0xFF94A3B8)
-                    )
+            // Accesos rápidos
+            item {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    item { Acceso("Agenda cultural (${eventos.size})", Icons.Default.Event) { navController.navigate(AppScreens.EventList.route) } }
+                    item { Acceso("Rutas patrimoniales", Icons.Default.Explore) { navController.navigate(AppScreens.RoutePlanner.route) } }
+                    item { Acceso("Avisos en vivo (${avisos.size})", Icons.Default.Notifications) { navController.navigate(AppScreens.CommunityAlerts.route) } }
                 }
             }
+
+            // Último aviso de la red
+            avisos.firstOrNull()?.let { aviso ->
+                item {
+                    Surface(
+                        color = Paleta.AmbarSuave,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { navController.navigate(AppScreens.CommunityAlerts.route) }
+                    ) {
+                        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(CategoriasAviso.icono(aviso.categoria), fontSize = 20.sp)
+                            Spacer(Modifier.width(10.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("${aviso.nombreNodo}: ${aviso.titulo}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Paleta.Ambar, maxLines = 1)
+                                Text(Formatos.hace(aviso.haceMinutos), fontSize = 11.sp, color = Paleta.Ambar)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Mapa
+            item {
+                MapaEsquematico(
+                    nodos = nodos,
+                    seleccionado = seleccionado,
+                    onSeleccionar = { seleccionadoId = it.idNodo },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                )
+            }
+
+            // Leyenda
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    EstadosApertura.TODOS.forEach { e ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.size(10.dp).background(colorEstado(e), CircleShape))
+                            Spacer(Modifier.width(4.dp))
+                            Text(EstadosApertura.nombreVisible(e), fontSize = 11.sp, color = Paleta.TextoMedio)
+                        }
+                    }
+                }
+            }
+
+            // Tarjeta del templo seleccionado
+            seleccionado?.let { nodo ->
+                item {
+                    Tarjeta {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(nodo.nombreOficial, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Paleta.Texto)
+                                Text("${nodo.direccion}, ${nodo.comuna}", fontSize = 12.sp, color = Paleta.TextoSuave)
+                            }
+                            EtiquetaEstado(nodo.estadoActual)
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Button(
+                                onClick = { navController.navigate(AppScreens.Detail.createRoute(nodo.idNodo)) },
+                                colors = ButtonDefaults.buttonColors(containerColor = Paleta.Azul),
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Ver ficha") }
+                            OutlinedButton(
+                                onClick = { navController.navigate(AppScreens.EventList.route) },
+                                modifier = Modifier.weight(1f)
+                            ) { Text("Ver agenda") }
+                        }
+                    }
+                }
+            }
+
+            item { TituloSeccion("Lugares de la red (${nodos.size})", Modifier.padding(top = 4.dp)) }
+            items(nodos, key = { it.idNodo }) { nodo ->
+                TarjetaNodo(nodo = nodo, onClick = { navController.navigate(AppScreens.Detail.createRoute(nodo.idNodo)) })
+            }
+            if (nodos.isEmpty()) item { MensajeVacio("Cargando la red patrimonial…") }
         }
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun MapScreenPreview() {
-    MapScreen(navController = rememberNavController(), isGuest = true)
+private fun Acceso(texto: String, icono: ImageVector, onClick: () -> Unit) {
+    AssistChip(
+        onClick = onClick,
+        label = { Text(texto, fontSize = 12.sp) },
+        leadingIcon = { Icon(icono, contentDescription = null, modifier = Modifier.size(18.dp), tint = Paleta.Azul) },
+        colors = AssistChipDefaults.assistChipColors(containerColor = Color.White)
+    )
+}
+
+
+// ---------- Vista previa para el panel Split de Android Studio (usa datos de prueba) ----------
+@Preview(name = "Mapa (invitado)", showBackground = true, showSystemUi = true)
+@Composable
+private fun MapScreenPreview() {
+    val vm = rememberViewModelsPrueba()
+    VistaPrevia { MapScreen(rememberNavController(), vm.auth, vm.nodo, vm.evento, vm.aviso) }
 }
