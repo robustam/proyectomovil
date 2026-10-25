@@ -1,269 +1,208 @@
 package com.arzobispado.redpatrimonial.ui.screens
 
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.ConfirmationNumber
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.arzobispado.redpatrimonial.data.model.NodoPatrimonial
+import androidx.navigation.NavHostController
+import com.arzobispado.redpatrimonial.data.model.EstadosApertura
+import com.arzobispado.redpatrimonial.data.model.Roles
 import com.arzobispado.redpatrimonial.navigation.AppScreens
+import com.arzobispado.redpatrimonial.ui.components.*
+import com.arzobispado.redpatrimonial.util.Formatos
+import com.arzobispado.redpatrimonial.viewmodel.AuthViewModel
+import com.arzobispado.redpatrimonial.viewmodel.EventoViewModel
+import com.arzobispado.redpatrimonial.viewmodel.NodoViewModel
+import com.arzobispado.redpatrimonial.viewmodel.RutaViewModel
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.arzobispado.redpatrimonial.ui.preview.VistaPrevia
+import com.arzobispado.redpatrimonial.ui.preview.rememberViewModelsPrueba
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** CU03: ficha patrimonial con pestañas Historia / Horarios / Galería / Eventos. */
 @Composable
 fun DetailScreen(
-    navController: NavController,
-    nodoId: Int = 1,
-    isGuest: Boolean = true
+    navController: NavHostController,
+    nodoId: Long,
+    authVM: AuthViewModel,
+    nodoVM: NodoViewModel,
+    eventoVM: EventoViewModel,
+    rutaVM: RutaViewModel
 ) {
-    var isFavorite by remember { mutableStateOf(false) }
-    var showGuestDialog by remember { mutableStateOf(false) }
-
-    // Objeto simulado para el detalle del nodo seleccionado
-    val nodo = remember {
-        NodoPatrimonial(
-            id = nodoId,
-            nombre = "Catedral Metropolitana de Santiago",
-            direccion = "Plaza de Armas s/n, Santiago Centro",
-            categoria = "Religioso / Histórico",
-            estadoOperativo = "Abierto",
-            latitud = -33.4372,
-            longitud = -70.6506,
-            imagenUrl = ""
-        )
+    LaunchedEffect(nodoId) {
+        nodoVM.cargarDetalle(nodoId)
+        eventoVM.cargarDeNodo(nodoId)
     }
+    val nodo by nodoVM.seleccionado.collectAsState()
+    val eventos by eventoVM.eventosNodo.collectAsState()
+    val favoritos by nodoVM.favoritos.collectAsState()
+    val borrador by rutaVM.borrador.collectAsState()
+    val usuario by authVM.usuario.collectAsState()
+    var pestana by remember { mutableIntStateOf(0) }
+    var dialogoInvitado by remember { mutableStateOf<String?>(null) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Detalle Patrimonial",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
+    Pantalla(titulo = "Ficha patrimonial", onVolver = { navController.popBackStack() }, viewModels = listOf(nodoVM, eventoVM)) {
+        val n = nodo
+        if (n == null || n.idNodo != nodoId) {
+            MensajeVacio("Cargando ficha…")
+        } else {
+        val esFavorito = n.idNodo in favoritos
+        val enRuta = borrador.any { it.idNodo == n.idNodo }
+
+        Column(Modifier.verticalScroll(rememberScrollState())) {
+            // Encabezado con la imagen principal simulada
+            Box(Modifier.fillMaxWidth().height(180.dp)) {
+                RecursoSimulado(
+                    titulo = n.recursos.firstOrNull { it.esPrincipal }?.titulo ?: "Galería de fotos",
+                    tipo = "IMAGEN",
+                    modifier = Modifier.fillMaxSize()
+                )
+                Row(Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                    FilledIconButton(
+                        onClick = {
+                            if (usuario == null) dialogoInvitado = "Debes iniciar sesión para guardar favoritos."
+                            else nodoVM.alternarFavorito(n.idNodo)
+                        },
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.White)
+                    ) {
+                        Icon(if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = "Favorito", tint = if (esFavorito) Paleta.Rojo else Paleta.TextoSuave)
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0F172A)
-                )
-            )
-        }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF1F5F9))
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Contenedor de encabezado visual / Imagen
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .background(Color(0xFF1E3A8A)),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AccountBalance,
-                    contentDescription = null,
-                    modifier = Modifier.size(80.dp),
-                    tint = Color(0xFF93C5FD)
-                )
+                }
             }
 
-            // Información detallada
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        color = Color(0xFFDBEAFE),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Etiqueta(Formatos.tipoNodo(n.tipoNodo))
+                    EtiquetaEstado(n.estadoActual)
+                    if (n.estiloArquitectonico.isNotBlank()) Etiqueta(n.estiloArquitectonico, Paleta.AmbarSuave, Paleta.Ambar)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(n.nombreOficial, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Paleta.Texto)
+                Spacer(Modifier.height(4.dp))
+                FilaDato(Icons.Default.LocationOn, "${n.direccion}, ${n.comuna}")
+                if (n.decanato.isNotBlank()) FilaDato(Icons.Default.Church, n.decanato)
+                n.anioConstruccion?.let { FilaDato(Icons.Default.HistoryEdu, "Construcción: $it") }
+
+                // Aviso si hoy tiene un horario especial
+                n.horariosExcepcionales.firstOrNull()?.let { h ->
+                    Spacer(Modifier.height(8.dp))
+                    Surface(color = Paleta.MoradoSuave, shape = MaterialTheme.shapes.medium) {
                         Text(
-                            text = nodo.categoria,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E40AF),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                            "Horario especial ${Formatos.fechaCorta(h.fecha)} ${h.horaInicio}-${h.horaFin}: " +
+                                "${EstadosApertura.nombreVisible(h.estadoApertura)}. ${h.motivo}",
+                            fontSize = 12.sp, color = Paleta.Morado, modifier = Modifier.padding(10.dp)
                         )
                     }
+                }
+            }
 
-                    // Botón de Favorito
-                    IconButton(
-                        onClick = {
-                            if (isGuest) {
-                                showGuestDialog = true
-                            } else {
-                                isFavorite = !isFavorite
+            TabRow(selectedTabIndex = pestana, containerColor = Color.White) {
+                listOf("Historia", "Horarios", "Galería", "Eventos (${eventos.size})").forEachIndexed { i, t ->
+                    Tab(selected = pestana == i, onClick = { pestana = i }, text = { Text(t, fontSize = 12.sp) })
+                }
+            }
+
+            Column(Modifier.padding(16.dp)) {
+                when (pestana) {
+                    0 -> Text(n.resenaHistorica.ifBlank { "Sin reseña registrada." }, fontSize = 14.sp, color = Paleta.TextoMedio, lineHeight = 20.sp)
+                    1 -> {
+                        if (n.horariosRegulares.isEmpty()) Text("Sin horario registrado", color = Paleta.TextoSuave)
+                        n.horariosRegulares.forEach { h ->
+                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text(Formatos.dia(h.diaSemana), Modifier.weight(1f), color = Paleta.TextoMedio)
+                                Text("${h.horaApertura} - ${h.horaCierre}", fontWeight = FontWeight.SemiBold, color = Paleta.Texto)
                             }
                         }
-                    ) {
-                        Icon(
-                            imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "Favorito",
-                            tint = if (isFavorite) Color(0xFFDC2626) else Color(0xFF64748B)
-                        )
+                        if (n.horariosExcepcionales.isNotEmpty()) {
+                            Spacer(Modifier.height(12.dp))
+                            TituloSeccion("Horarios excepcionales")
+                            n.horariosExcepcionales.forEach { h ->
+                                Text("• ${Formatos.fechaLarga(h.fecha)}, ${h.horaInicio}-${h.horaFin}: ${EstadosApertura.nombreVisible(h.estadoApertura)} (${h.motivo})",
+                                    fontSize = 13.sp, color = Paleta.TextoMedio, modifier = Modifier.padding(vertical = 2.dp))
+                            }
+                        }
+                    }
+                    2 -> {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            items(n.recursos) { r ->
+                                Column(Modifier.width(140.dp)) {
+                                    RecursoSimulado(r.titulo, r.tipoRecurso, Modifier.fillMaxWidth().height(100.dp))
+                                    if (r.tipoRecurso == "AUDIO") {
+                                        Text("Audioguía · ${Formatos.duracion((r.duracionSegundos ?: 0) / 60)}", fontSize = 11.sp, color = Paleta.TextoSuave)
+                                    }
+                                }
+                            }
+                        }
+                        if (n.recursos.isEmpty()) Text("Sin recursos multimedia", color = Paleta.TextoSuave)
+                        Text("Recursos multimedia simulados (URLs de prueba).", fontSize = 11.sp, color = Paleta.TextoSuave, modifier = Modifier.padding(top = 8.dp))
+                    }
+                    else -> {
+                        if (eventos.isEmpty()) Text("No hay eventos próximos en este lugar", color = Paleta.TextoSuave)
+                        eventos.forEach { e ->
+                            Tarjeta(Modifier.padding(vertical = 4.dp)) {
+                                Text(e.titulo, fontWeight = FontWeight.Bold, color = Paleta.Texto)
+                                Text("${Formatos.categoriaEvento(e.categoria)} · ${Formatos.fechaHora(e.fechaInicio)}", fontSize = 12.sp, color = Paleta.TextoSuave)
+                            }
+                        }
+                        if (eventos.isNotEmpty()) {
+                            TextButton(onClick = { navController.navigate(AppScreens.EventList.route) }) { Text("Ir a la agenda para inscribirme") }
+                        }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = nodo.nombre,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
+            // Acciones
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                BotonPrincipal(
+                    texto = if (enRuta) "Quitar de mi ruta" else "Agregar a mi ruta",
+                    icono = Icons.Default.AddLocationAlt,
+                    onClick = { rutaVM.alternarParada(n) }
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = Color(0xFF2563EB),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = nodo.direccion,
-                        fontSize = 14.sp,
-                        color = Color(0xFF475569)
-                    )
+                if (borrador.isNotEmpty()) {
+                    OutlinedButton(onClick = { navController.navigate(AppScreens.CrearRuta.route) }, modifier = Modifier.fillMaxWidth()) {
+                        Text("Ver mi ruta (${borrador.size} lugares)")
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = Color(0xFF166534),
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "Horarios: Lunes a Domingo de 09:00 a 19:00 hrs.",
-                        fontSize = 13.sp,
-                        color = Color(0xFF475569)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Text(
-                    text = "Reseña Histórica",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "La Catedral Metropolitana de Santiago es la sede de la Arquidiócesis de Santiago de Chile y el principal templo de la Iglesia católica en el país. Declarada Monumento Nacional, destaca por su arquitectura neoclásica y su rico patrimonio religioso e histórico.",
-                    fontSize = 14.sp,
-                    color = Color(0xFF334155),
-                    lineHeight = 20.sp
-                )
-
-                Spacer(modifier = Modifier.height(28.dp))
-
-                // Botón para solicitar pase
-                Button(
-                    onClick = {
-                        if (isGuest) {
-                            showGuestDialog = true
-                        } else {
-                            // Lógica de generación de pase
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ConfirmationNumber,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Solicitar Pase de Visita",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+                if (usuario?.rol == Roles.PROFESOR) {
+                    OutlinedButton(onClick = { navController.navigate(AppScreens.NuevaSalida.route) }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Default.School, contentDescription = null)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Agendar visita con mi curso")
+                    }
                 }
             }
         }
+        }
     }
 
-    // Cuadro de diálogo que restringe acciones protegidas al Modo Invitado
-    if (showGuestDialog) {
-        AlertDialog(
-            onDismissRequest = { showGuestDialog = false },
-            title = { Text("Función para Usuarios Registrados") },
-            text = { Text("Debes iniciar sesión para guardar favoritos o solicitar pases de visita patrimoniales.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showGuestDialog = false
-                        navController.navigate(AppScreens.Login.route)
-                    }
-                ) {
-                    Text("Iniciar Sesión")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showGuestDialog = false }) {
-                    Text("Cancelar")
-                }
-            }
-        )
+    dialogoInvitado?.let { texto ->
+        DialogoInvitado(texto, onIniciarSesion = {
+            dialogoInvitado = null
+            navController.navigate(AppScreens.Login.route)
+        }, onCerrar = { dialogoInvitado = null })
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+
+// ---------- Vista previa para el panel Split de Android Studio (usa datos de prueba) ----------
+@Preview(name = "Ficha patrimonial", showBackground = true, showSystemUi = true)
 @Composable
-fun DetailScreenPreview() {
-    DetailScreen(navController = rememberNavController())
+private fun DetailScreenPreview() {
+    val vm = rememberViewModelsPrueba(rol = Roles.TURISTA) {
+        nodo.cargarDetalle(1); evento.cargarDeNodo(1)
+    }
+    VistaPrevia { DetailScreen(rememberNavController(), 1, vm.auth, vm.nodo, vm.evento, vm.ruta) }
 }

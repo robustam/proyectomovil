@@ -1,237 +1,182 @@
 package com.arzobispado.redpatrimonial.ui.screens
 
-import android.R
-import android.view.View
-import android.widget.NumberPicker
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.overscroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Volcano
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavHostController
+import com.arzobispado.redpatrimonial.data.model.Roles
 import com.arzobispado.redpatrimonial.navigation.AppScreens
+import com.arzobispado.redpatrimonial.navigation.irAlInicio
+import com.arzobispado.redpatrimonial.ui.components.Paleta
+import com.arzobispado.redpatrimonial.viewmodel.AuthViewModel
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.arzobispado.redpatrimonial.ui.preview.VistaPrevia
+import com.arzobispado.redpatrimonial.ui.preview.rememberViewModelsPrueba
 
-// Pantalla principal de Autenticación de Usuario
+/** Pantalla de inicio de sesión. Conectada a AuthViewModel (ms-usuarios). */
 @Composable
-fun LoginScreen(navController: NavController){
-    // esgtados locales en comoose para guardar lo que escribe el usuario
+fun LoginScreen(navController: NavHostController, authVM: AuthViewModel) {
     var correo by remember { mutableStateOf("") }
-    var contrasena by remember { mutableStateOf("") }
-    var contrsenaVisible by remember { mutableStateOf(false) }
+    var clave by remember { mutableStateOf("") }
+    var claveVisible by remember { mutableStateOf(false) }
+    val cargando by authVM.cargando.collectAsState()
+    val mensaje by authVM.mensaje.collectAsState()
 
-
-    //contenedor principal
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Color(0xFF0F172A), Color(0xFF1E3A8A))
-                )
-            )
-
-    ){
+            .background(Brush.verticalGradient(listOf(Paleta.Marino, Paleta.AzulOscuro)))
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
-
-        ){
-
-            Icon(
-                imageVector = Icons.Default.AccountBalance,
-                contentDescription = "Logo Red Patrimonial",
-                modifier = Modifier.size(64.dp),
-                tint = Color(0xFF93C5FD)
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Red Patrimonial ",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-
-            )
-            Text(
-                text ="Arzobispado de Santiago",
-                fontSize = 14.sp,
-                color = Color(0xFF93C5FD)
-
-
-            )
-            Spacer(modifier = Modifier.height(32.dp))
+        ) {
+            Spacer(Modifier.height(24.dp))
+            Icon(Icons.Default.AccountBalance, contentDescription = "Logo Red Patrimonial", modifier = Modifier.size(64.dp), tint = Paleta.Celeste)
+            Spacer(Modifier.height(12.dp))
+            Text("Red Patrimonial", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("Arzobispado de Santiago", fontSize = 14.sp, color = Paleta.Celeste)
+            Spacer(Modifier.height(28.dp))
 
             Card(
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 modifier = Modifier.fillMaxWidth()
-
             ) {
-                Column(modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                    Text(
-                        text = "BIENVENIDO",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
-                    )
-                    Text(
-                        text="INICIA SESSION",
-                        fontSize =  12.sp,
-                        color = Color(0xFF64748B),
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
+                Column(modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("¡Bienvenido!", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = Paleta.Texto)
+                    Text("Inicia sesión para gestionar tus rutas y pases", fontSize = 12.sp, color = Paleta.TextoSuave, textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(20.dp))
 
                     OutlinedTextField(
                         value = correo,
-                        onValueChange = {correo = it},
-                        label = {Text("CORREO ELECTRONICO")},
-                        leadingIcon = {Icon(Icons.Default.Email, contentDescription = null)},
+                        onValueChange = { correo = it },
+                        label = { Text("Correo electrónico") },
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(25.dp)
-
-
+                        shape = RoundedCornerShape(12.dp)
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-
+                    Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
-
-                        value = contrasena,
-                        onValueChange = {contrasena= it},
-                        label = {Text ("CONTRACEÑA")},
-                        leadingIcon = {Icon(Icons.Default.Lock , contentDescription = null)},
+                        value = clave,
+                        onValueChange = { clave = it },
+                        label = { Text("Contraseña") },
+                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                         trailingIcon = {
-                            IconButton(onClick = {contrsenaVisible = !contrsenaVisible}) {
-                                Icon(imageVector = if (contrsenaVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = "OCULTAR O MOSTRAR CONTRACEÑA")
-
+                            IconButton(onClick = { claveVisible = !claveVisible }) {
+                                Icon(
+                                    if (claveVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = "Mostrar u ocultar contraseña"
+                                )
                             }
                         },
-                       visualTransformation = if (contrsenaVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        visualTransformation = if (claveVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(25.dp)
+                        shape = RoundedCornerShape(12.dp)
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
+                    TextButton(
+                        onClick = { navController.navigate(AppScreens.RecuperarClave.route) },
+                        modifier = Modifier.align(Alignment.End)
+                    ) {
+                        Text("¿Olvidaste tu contraseña?", fontSize = 12.sp, color = Paleta.Azul)
+                    }
+
+                    if (mensaje != null) {
+                        Text(mensaje ?: "", color = Paleta.Rojo, fontSize = 13.sp, textAlign = TextAlign.Center)
+                        Spacer(Modifier.height(8.dp))
+                    }
 
                     Button(
                         onClick = {
-                            // Navega hacia la pantalla del Mapa
-                            navController.navigate(AppScreens.Map.route) {
-                                popUpTo(AppScreens.Login.route) { inclusive = true }
-                            }
+                            authVM.login(correo, clave) { usuario -> navController.irAlInicio(usuario.rol) }
                         },
+                        enabled = !cargando,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB))
+                        colors = ButtonDefaults.buttonColors(containerColor = Paleta.Azul)
                     ) {
-                        Text(
-                            text = "Iniciar Sesión",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
+                        if (cargando) {
+                            CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                        } else {
+                            Text("Iniciar sesión", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Botón Secundario: Modo Invitado
+                    Spacer(Modifier.height(12.dp))
+                    Text("o continúa como", fontSize = 12.sp, color = Paleta.TextoSuave)
+                    Spacer(Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = {
-                            navController.navigate(AppScreens.Map.route)
+                            authVM.entrarComoInvitado()
+                            navController.irAlInicio(Roles.TURISTA)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(
-                            text = " Explorar como Invitado",
-                            color = Color(0xFF334155)
-                        )
+                        Icon(Icons.AutoMirrored.Filled.DirectionsWalk, contentDescription = null, tint = Paleta.TextoMedio)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Explorar como invitado", color = Paleta.TextoMedio)
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Enlace a la pantalla de Registro
-                    TextButton(
-                        onClick = {
-                            navController.navigate(AppScreens.Register.route)
-                        }
-                    ) {
-                        Text(
-                            text = "¿No tienes cuenta? Regístrate aquí",
-                            fontSize = 13.sp,
-                            color = Color(0xFF2563EB),
-                            fontWeight = FontWeight.Bold
-                        )
+                    Spacer(Modifier.height(8.dp))
+                    TextButton(onClick = {
+                        authVM.limpiarMensaje()
+                        navController.navigate(AppScreens.Register.route)
+                    }) {
+                        Text("¿No tienes cuenta? Regístrate aquí", fontSize = 13.sp, color = Paleta.Azul, fontWeight = FontWeight.Bold)
                     }
-
-
-
-
                 }
-
             }
 
-
-
-
+            Spacer(Modifier.height(16.dp))
+            // Ayuda para la demostración: cuentas de prueba ficticias
+            Surface(color = Color.White.copy(alpha = 0.12f), shape = RoundedCornerShape(12.dp)) {
+                Column(Modifier.padding(12.dp)) {
+                    Text("Cuentas de prueba (clave: demo123)", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("turista@demo.cl · profesor@demo.cl · guia@demo.cl\nencargado@demo.cl · admin@demo.cl",
+                        color = Paleta.Celeste, fontSize = 11.sp)
+                }
+            }
         }
-
     }
-
-
-
-
 }
-@Preview(showBackground = true, showSystemUi = true)
+
+
+// ---------- Vista previa para el panel Split de Android Studio (usa datos de prueba) ----------
+@Preview(name = "Login", showBackground = true, showSystemUi = true)
 @Composable
-fun LoginScreenPreview() {
-    LoginScreen(navController = rememberNavController())
+private fun LoginScreenPreview() {
+    val vm = rememberViewModelsPrueba()
+    VistaPrevia { LoginScreen(rememberNavController(), vm.auth) }
 }

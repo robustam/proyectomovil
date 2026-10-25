@@ -1,285 +1,121 @@
 package com.arzobispado.redpatrimonial.ui.screens
 
-
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.automirrored.filled.DirectionsWalk
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.NavHostController
+import com.arzobispado.redpatrimonial.data.model.Ruta
 import com.arzobispado.redpatrimonial.navigation.AppScreens
+import com.arzobispado.redpatrimonial.ui.components.*
+import com.arzobispado.redpatrimonial.util.Formatos
+import com.arzobispado.redpatrimonial.viewmodel.AuthViewModel
+import com.arzobispado.redpatrimonial.viewmodel.RutaViewModel
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.arzobispado.redpatrimonial.ui.preview.VistaPrevia
+import com.arzobispado.redpatrimonial.ui.preview.rememberViewModelsPrueba
+import com.arzobispado.redpatrimonial.data.model.Roles
 
-// Modelo de datos local para la ruta
-data class RutaCultural(
-    val id: Int,
-    val titulo: String,
-    val descripcion: String,
-    val duracionEstimada: String,
-    val cantidadNodos: Int,
-    val enfoque: String
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
+/** Rutas recomendadas por la red y rutas personalizadas del usuario (CU06). */
 @Composable
-fun RoutePlannerScreen(
-    navController: NavController,
-    isGuest: Boolean = true
-) {
-    var showGuestDialog by remember { mutableStateOf(false) }
+fun RoutePlannerScreen(navController: NavHostController, authVM: AuthViewModel, rutaVM: RutaViewModel) {
+    val usuario by authVM.usuario.collectAsState()
+    val rutas by rutaVM.rutas.collectAsState()
+    LaunchedEffect(usuario?.idUsuario) { rutaVM.cargar(usuario?.idUsuario) }
 
-    val listaRutas = remember {
-        listOf(
-            RutaCultural(
-                1,
-                "Ruta Neoclásica del Centro",
-                "Catedral Metropolitana, Iglesia de las Agustinas y Templo Santo Domingo.",
-                "2 hrs 30 min",
-                3,
-                "Pedagógico / Escolar"
-            ),
-            RutaCultural(
-                2,
-                "Ruta Monástica y Conventos",
-                "Iglesia San Francisco, Convento de la Merced y Recoleta Franciscana.",
-                "3 hrs",
-                3,
-                "Histórico / Sacro"
-            ),
-            RutaCultural(
-                3,
-                "Circuito Patrimonial Barrio Yungay",
-                "Parroquia San Saturnino, Basílica del Salvador y capillas locales.",
-                "1 hr 45 min",
-                2,
-                "Comunitario"
-            )
-        )
-    }
+    val recomendadas = rutas.filter { !it.personalizada }
+    val mias = rutas.filter { it.personalizada }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Planificador de Rutas",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0F172A)
-                )
-            )
-        },
-        floatingActionButton = {
+    Pantalla(
+        titulo = "Rutas patrimoniales",
+        onVolver = if (navController.previousBackStackEntry != null) ({ navController.popBackStack() }) else null,
+        viewModels = listOf(rutaVM),
+        fab = {
             ExtendedFloatingActionButton(
-                onClick = {
-                    if (isGuest) {
-                        showGuestDialog = true
-                    } else {
-                        // Lógica para crear ruta personalizada
-                    }
-                },
-                containerColor = Color(0xFF2563EB),
+                onClick = { navController.navigate(AppScreens.CrearRuta.route) },
+                containerColor = Paleta.Azul,
                 contentColor = Color.White,
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("Crear Ruta Personalizada", fontWeight = FontWeight.Bold) }
+                text = { Text("Crear mi ruta", fontWeight = FontWeight.Bold) }
             )
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(Color(0xFFF1F5F9))
-        ) {
-            Text(
-                text = "Rutas Recomendadas",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1E293B),
-                modifier = Modifier.padding(16.dp)
-            )
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(listaRutas) { ruta ->
-                    ItemRuta(
-                        ruta = ruta,
-                        onIniciarClick = {
-                            // Iniciar navegación por ruta
-                        }
-                    )
-                }
-            }
-        }
-    }
-
-    if (showGuestDialog) {
-        AlertDialog(
-            onDismissRequest = { showGuestDialog = false },
-            title = { Text("Función para Usuarios Registrados") },
-            text = { Text("Debes iniciar sesión para diseñar rutas personalizadas y guardar itinerarios educativos.") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showGuestDialog = false
-                        navController.navigate(AppScreens.Login.route)
-                    }
-                ) {
-                    Text("Iniciar Sesión")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showGuestDialog = false }) {
-                    Text("Cancelar")
-                }
-            }
-        )
-    }
-}
-
-@Composable
-fun ItemRuta(
-    ruta: RutaCultural,
-    onIniciarClick: () -> Unit
-) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth()
+        LazyColumn(
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 88.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = Color(0xFFDBEAFE),
-                    shape = RoundedCornerShape(6.dp)
-                ) {
-                    Text(
-                        text = ruta.enfoque,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E40AF),
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Timer,
-                        contentDescription = null,
-                        tint = Color(0xFF64748B),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = ruta.duracionEstimada,
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B),
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+            item { TituloSeccion("Rutas recomendadas") }
+            items(recomendadas, key = { it.idRuta }) { ruta ->
+                ItemRuta(ruta, onVer = { navController.navigate(AppScreens.RutaDetalle.createRoute(ruta.idRuta)) })
             }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = ruta.titulo,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF0F172A)
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = ruta.descripcion,
-                fontSize = 13.sp,
-                color = Color(0xFF475569),
-                lineHeight = 18.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Place,
-                        contentDescription = null,
-                        tint = Color(0xFF2563EB),
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "${ruta.cantidadNodos} Puntos de interés",
-                        fontSize = 12.sp,
-                        color = Color(0xFF334155),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                OutlinedButton(
-                    onClick = onIniciarClick,
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.DirectionsWalk,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Ver Recorrido", fontSize = 12.sp)
-                }
+            item { TituloSeccion("Mis rutas personalizadas", Modifier.padding(top = 8.dp)) }
+            if (usuario == null) {
+                item { MensajeVacio("Inicia sesión para guardar tus propias rutas", Icons.Default.Lock) }
+            } else if (mias.isEmpty()) {
+                item { MensajeVacio("Aún no creas rutas. Toca \"Crear mi ruta\" y elige los templos que quieres visitar.", Icons.Default.AddLocationAlt) }
+            }
+            items(mias, key = { it.idRuta }) { ruta ->
+                ItemRuta(
+                    ruta,
+                    onVer = { navController.navigate(AppScreens.RutaDetalle.createRoute(ruta.idRuta)) },
+                    onEliminar = { rutaVM.eliminarRuta(ruta, usuario?.idUsuario) }
+                )
             }
         }
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun RoutePlannerScreenPreview() {
-    RoutePlannerScreen(navController = rememberNavController())
+fun ItemRuta(ruta: Ruta, onVer: () -> Unit, onEliminar: (() -> Unit)? = null) {
+    Tarjeta {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Etiqueta(ruta.enfoque)
+            Spacer(Modifier.weight(1f))
+            Icon(Icons.Default.Timer, contentDescription = null, tint = Paleta.TextoSuave, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(Formatos.duracion(ruta.tiempoEstimadoMin), fontSize = 12.sp, color = Paleta.TextoSuave)
+            if (onEliminar != null) {
+                IconButton(onClick = onEliminar, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Paleta.TextoSuave, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(ruta.nombreRuta, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Paleta.Texto)
+        if (ruta.descripcion.isNotBlank()) Text(ruta.descripcion, fontSize = 13.sp, color = Paleta.TextoMedio)
+        Spacer(Modifier.height(4.dp))
+        Text(ruta.paradas.joinToString(" → ") { it.nombreNodo }, fontSize = 12.sp, color = Paleta.TextoSuave, maxLines = 2)
+        Spacer(Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("📏 ${ruta.distanciaKm} km · ${ruta.paradas.size} paradas · ${ruta.nivelDificultad}",
+                fontSize = 12.sp, color = Paleta.TextoMedio, modifier = Modifier.weight(1f))
+            OutlinedButton(onClick = onVer, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)) {
+                Icon(Icons.AutoMirrored.Filled.DirectionsWalk, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Ver recorrido", fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+
+// ---------- Vista previa para el panel Split de Android Studio (usa datos de prueba) ----------
+@Preview(name = "Rutas", showBackground = true, showSystemUi = true)
+@Composable
+private fun RoutePlannerScreenPreview() {
+    val vm = rememberViewModelsPrueba(rol = Roles.TURISTA) {
+        ruta.cargar(1)
+    }
+    VistaPrevia { RoutePlannerScreen(rememberNavController(), vm.auth, vm.ruta) }
 }
