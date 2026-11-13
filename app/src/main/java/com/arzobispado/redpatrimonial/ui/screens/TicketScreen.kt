@@ -57,7 +57,8 @@ fun TicketScreen(navController: NavHostController, eventoVM: EventoViewModel) {
                     FilaDato(Icons.Default.Schedule, "${Formatos.soloHora(t.fechaEvento)} hrs")
                     FilaDato(Icons.Default.Groups, "${t.cantidadPersonas} persona(s)")
                     Spacer(Modifier.height(16.dp))
-                    QrSimulado(t.codigoQr, Modifier.size(200.dp).align(Alignment.CenterHorizontally))
+                    // QR real generado con ZXing a partir del código del ticket (antes era un dibujo simulado)
+                    QrImagen(t.codigoQr, Modifier.size(200.dp).align(Alignment.CenterHorizontally))
                     Spacer(Modifier.height(8.dp))
                     Text("ID: ${t.codigoQr}", fontWeight = FontWeight.Bold, fontSize = 16.sp,
                         modifier = Modifier.align(Alignment.CenterHorizontally))
