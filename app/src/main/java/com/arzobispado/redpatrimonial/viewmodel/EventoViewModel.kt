@@ -47,6 +47,14 @@ class EventoViewModel(
         }
     }
 
+    /**
+     * Control de entrada: envía el código leído con la cámara al backend (PUT .../validar).
+     * Si el backend lo acepta, la inscripción pasa a ASISTIO. Mensaje de éxito en pantalla.
+     */
+    fun validarEntrada(codigo: String) = ejecutar(mensajeExito = "Asistencia registrada") {
+        repo.validarEntrada(codigo)
+    }
+
     fun verTicket(inscripcion: Inscripcion) {
         _ticket.value = inscripcion
     }

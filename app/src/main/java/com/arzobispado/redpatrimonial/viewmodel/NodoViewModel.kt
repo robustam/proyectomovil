@@ -6,7 +6,10 @@ import com.arzobispado.redpatrimonial.data.repository.NodoRepository
 import com.arzobispado.redpatrimonial.util.Formatos
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import androidx.lifecycle.viewModelScope
+import com.arzobispado.redpatrimonial.data.local.FavoritosRepository
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /** Filtros de la pantalla Explorar (CU02). */
@@ -22,7 +25,9 @@ data class FiltrosNodo(
  * y las acciones del encargado de templo.
  */
 class NodoViewModel(
-    private val repo: NodoRepository = AppContainer.nodoRepository
+    private val repo: NodoRepository = AppContainer.nodoRepository,
+    // Repositorio de favoritos (Room). Se puede reemplazar por otro en pruebas.
+    private val repoFavoritos: FavoritosRepository = AppContainer.favoritosRepository
 ) : BaseViewModel() {
 
     private val _nodos = MutableStateFlow<List<NodoPatrimonial>>(emptyList())
@@ -48,12 +53,14 @@ class NodoViewModel(
     private val _seleccionado = MutableStateFlow<NodoPatrimonial?>(null)
     val seleccionado: StateFlow<NodoPatrimonial?> = _seleccionado.asStateFlow()
 
-    /** Favoritos de la sesión (se guardarán con Room cuando se vea en clases). */
+    /** Favoritos guardados en Room: sobreviven aunque se cierre la app. */
     private val _favoritos = MutableStateFlow<Set<Long>>(emptySet())
     val favoritos: StateFlow<Set<Long>> = _favoritos.asStateFlow()
 
     init {
         cargar()
+        // Escucha la base Room: cada cambio en favoritos actualiza _favoritos y la pantalla.
+        viewModelScope.launch { repoFavoritos.observar().collect { _favoritos.value = it } }
     }
 
     fun cargar() = ejecutar { ponerNodos(repo.listar()) }
@@ -70,9 +77,8 @@ class NodoViewModel(
         _nodosFiltrados.value = aplicarFiltros(_nodos.value, f)
     }
 
-    fun alternarFavorito(id: Long) {
-        _favoritos.value = if (id in _favoritos.value) _favoritos.value - id else _favoritos.value + id
-    }
+    /** Marca o desmarca el corazón. La escritura va a Room; la pantalla se actualiza sola por el Flow. */
+    fun alternarFavorito(id: Long) = viewModelScope.launch { repoFavoritos.alternar(id) }
 
     // ----- Acciones del encargado de templo -----
 
