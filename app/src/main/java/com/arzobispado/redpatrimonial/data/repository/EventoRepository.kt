@@ -41,6 +41,15 @@ class EventoRepository(private val api: EventoApi) {
         local = { reemplazarEvento(idEvento) { it.copy(estado = "CANCELADO") } }
     )
 
+    /**
+     * Control de entrada: el backend valida el código y marca la asistencia.
+     * Requiere servidor: sin conexión se muestra un error (no se puede validar con datos de prueba).
+     */
+    suspend fun validarEntrada(codigo: String): Inscripcion = conRespaldo(
+        remoto = { api.validarCodigo(codigo) },
+        local = { throw ErrorApi("Sin conexión: validar la entrada requiere el servidor") }
+    )
+
     /** Reserva de cupo con QR (mismas reglas que el backend). */
     suspend fun inscribir(evento: Evento, idUsuario: Long, cantidad: Int): Inscripcion = conRespaldo(
         remoto = { api.inscribir(evento.idEvento, InscripcionRequest(idUsuario, cantidad)) },

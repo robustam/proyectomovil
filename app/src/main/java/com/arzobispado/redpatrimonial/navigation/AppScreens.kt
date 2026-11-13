@@ -18,6 +18,9 @@ sealed class AppScreens(val route: String) {
     }
     object EventList : AppScreens("eventos")
     object Ticket : AppScreens("ticket")
+
+    // ---- Control de entrada (guía y encargado) ----
+    object EscanearEntrada : AppScreens("escanear_entrada")
     object RoutePlanner : AppScreens("rutas")
     object RutaDetalle : AppScreens("ruta/{rutaId}") {
         fun createRoute(rutaId: Long) = "ruta/$rutaId"

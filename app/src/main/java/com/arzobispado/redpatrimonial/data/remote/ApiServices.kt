@@ -67,6 +67,10 @@ interface EventoApi {
 
     @PUT("api/inscripciones/{id}/cancelar")
     suspend fun cancelarInscripcion(@Path("id") id: Long): Inscripcion
+
+    /** Control de entrada: marca la asistencia con el código QR escaneado (ruta del microservicio ms-eventos). */
+    @PUT("api/eventos/inscripciones/codigo/{codigo}/validar")
+    suspend fun validarCodigo(@Path("codigo") codigo: String): Inscripcion
 }
 
 /** Endpoints de ms-rutas (puerto 8084): rutas, guías y salidas pedagógicas. */

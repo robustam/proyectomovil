@@ -20,7 +20,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.ui.platform.LocalContext
 import com.arzobispado.redpatrimonial.data.model.Roles
+import com.arzobispado.redpatrimonial.data.repository.AppContainer
 import com.arzobispado.redpatrimonial.ui.components.Paleta
 import com.arzobispado.redpatrimonial.ui.screens.*
 import com.arzobispado.redpatrimonial.viewmodel.*
@@ -37,10 +39,12 @@ fun menuPara(rol: String): List<ItemMenu> {
     val avisos = ItemMenu(AppScreens.CommunityAlerts.route, "Avisos", Icons.Default.Notifications)
     val perfil = ItemMenu(AppScreens.Perfil.route, "Perfil", Icons.Default.Person)
     val rutas = ItemMenu(AppScreens.RoutePlanner.route, "Rutas", Icons.Default.Explore)
+    // Acceso a la pantalla de control de entrada con la cámara (solo guía y encargado)
+    val entrada = ItemMenu(AppScreens.EscanearEntrada.route, "Entrada", Icons.Default.QrCodeScanner)
     return when (rol) {
         Roles.PROFESOR -> listOf(mapa, ItemMenu(AppScreens.Salidas.route, "Salidas", Icons.Default.School), rutas, avisos, perfil)
-        Roles.GUIA -> listOf(ItemMenu(AppScreens.PanelGuia.route, "Mi panel", Icons.Default.Badge), mapa, avisos, perfil)
-        Roles.ENCARGADO -> listOf(ItemMenu(AppScreens.PanelEncargado.route, "Mi templo", Icons.Default.Church), mapa, avisos, perfil)
+        Roles.GUIA -> listOf(ItemMenu(AppScreens.PanelGuia.route, "Mi panel", Icons.Default.Badge), mapa, entrada, avisos, perfil)
+        Roles.ENCARGADO -> listOf(ItemMenu(AppScreens.PanelEncargado.route, "Mi templo", Icons.Default.Church), mapa, entrada, avisos, perfil)
         Roles.ADMIN -> listOf(ItemMenu(AppScreens.PanelAdmin.route, "Panel", Icons.Default.Dashboard), mapa, avisos, perfil)
         else -> listOf(mapa, ItemMenu(AppScreens.Explorar.route, "Buscar", Icons.Default.Search), rutas, avisos, perfil)
     }
@@ -59,6 +63,8 @@ fun NavHostController.irAlInicio(rol: String) {
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+    // Crea la base Room antes de crear los ViewModels (necesitan los favoritos guardados).
+    AppContainer.iniciar(LocalContext.current.applicationContext)
 
     // ViewModels compartidos por todas las pantallas (viven mientras la app está abierta)
     val authVM: AuthViewModel = viewModel()
@@ -125,6 +131,7 @@ fun AppNavigation() {
             }
             composable(AppScreens.EventList.route) { EventListScreen(navController, authVM, eventoVM) }
             composable(AppScreens.Ticket.route) { TicketScreen(navController, eventoVM) }
+            composable(AppScreens.EscanearEntrada.route) { EscanearEntradaScreen(navController, eventoVM) }
             composable(AppScreens.RoutePlanner.route) { RoutePlannerScreen(navController, authVM, rutaVM) }
             composable(
                 route = AppScreens.RutaDetalle.route,
